@@ -6,7 +6,7 @@ from unittest.mock import patch
 from langchain.output_parsers import ResponseSchema
 
 from rag_framework.output_parser.dataframe import createDataFrame  # 导入要测试的函数
-from rag_framework.model.openai_client import chat  # 模拟 chat
+from rag_framework.model.Chat import chat  # 模拟 chat
 
 
 input_template = """您是一位专业的鲜花店文案撰写员。
