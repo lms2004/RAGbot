@@ -80,36 +80,6 @@ def createSelector(samples):
     
     return example_selector
 
-# 创建具体prompt模板
-
-# PromptTemplate
-def createPrompt(input_template: str, output_parser):
-    """
-    创建一个带有格式指示的提示模板
-
-        参数：
-            input_template (str): 用于创建提示的字符串模板，包含占位符等待填充的动态信息。
-            output_parser: 一个输出解析器对象，提供格式化输出的指示。该对象需要实现`get_format_instructions()`方法，
-                        该方法返回一个字符串，表示模型应当遵循的输出格式说明。
-        
-        返回：
-            PromptTemplate: 根据输入模板和格式指示创建的提示模板。
-        
-        示例：
-            output_parser = SomeOutputParser()
-            prompt = createPrompt("生成一个关于{topic}的总结。", output_parser)
-            # 该函数将返回一个包含格式指示的PromptTemplate实例，用于生成与"topic"相关的总结。
-    """
-    # 获取格式指示
-    format_instructions = output_parser.get_format_instructions()
-    
-    # 根据模板创建提示，同时在模板中加入格式指示作为附加变量
-    prompt = PromptTemplate.from_template(
-        input_template, partial_variables={"format_instructions": format_instructions}
-    )
-    
-    return prompt
-
 
 # ChatPromptTemplate 
 def createChatPromptTemplate(message_templates):
@@ -140,7 +110,6 @@ def createChatPromptTemplate(message_templates):
     return ChatPromptTemplate.from_messages(
         [sysTemplate, usrTemplate, outputTemplate]
     )
-
 
 # FewShotPromptTemplate 
 def createFewShotPromptTemplate():
@@ -180,7 +149,6 @@ def createFewShotPromptTemplate():
     )
 
 def createSelcetorFewShotPromptTemplate():
-
     samples = [
         {
             "flower_type": "玫瑰",
@@ -209,25 +177,172 @@ def createSelcetorFewShotPromptTemplate():
         template="鲜花类型: {flower_type}\n场合: {occasion}\n文案: {ad_copy}",
     )
 
-    return FewShotPromptTemplate(
-        examples=createSelector(samples),
+    # 创建一个使用示例选择器的FewShotPromptTemplate对象
+    prompt = FewShotPromptTemplate(
+        example_selector=createSelector(samples),
         example_prompt=prompt_sample,
         suffix="鲜花类型: {flower_type}\n场合: {occasion}",
-        input_variables=["flower_type", "occasion"]
+        input_variables=["flower_type", "occasion"],
     )
+    return prompt
 
 
 
-# others
-def customizedPromptTemplate(full_templates, input_prompts:list):
+
+class PromptFactory:
     """
-        参数：完整提示词模板
-                input_prompts 模板占位符对应prompt列表
-        返回：个性化自定义prompt
-    
+    PromptFactory 类用于注册和创建不同类型的提示模板。
     """
-    return PipelinePromptTemplate(final_prompt = full_templates, pipeline_prompts=input_prompts)
+    _creators = {}
+
+    @classmethod
+    def register_prompt(cls, prompt_type: str, creator):
+        """
+        注册提示模板类型及其创建方法。
+        
+        参数:
+            prompt_type (str): 提示模板的类型。
+            creator (callable): 负责创建该类型模板的函数。
+        """
+        cls._creators[prompt_type] = creator
+
+    @classmethod
+    def create_prompt(cls, prompt_type: str, **kwargs):
+        """
+        创建指定类型的提示模板对象。
+
+        参数:
+            prompt_type (str): 提示模板的类型。
+            **kwargs: 传递给创建器的动态参数。
+
+        返回:
+            object: 创建的提示模板对象。
+
+        异常:
+            ValueError: 如果未注册 prompt_type 的创建器。
+        """
+        if prompt_type not in cls._creators:
+            raise ValueError(f"Invalid promptType '{prompt_type}'. Supported types are: {list(cls._creators.keys())}")
+        return cls._creators[prompt_type](**kwargs)
 
 
+# 注册 Few-Shot Prompt 的创建逻辑
+def fewshot_creator(isSelector: bool = False):
+    """
+    创建 Few-Shot 提示模板。
+
+    参数:
+        isSelector (bool): 是否使用选择器模式。
+
+    返回:
+        FewShotPromptTemplate: 创建的 Few-Shot 提示模板。
+    """
+    if isSelector:
+        return createSelcetorFewShotPromptTemplate()
+    return createFewShotPromptTemplate()
 
 
+# 注册 Chat Prompt 的创建逻辑
+def chat_creator(message_templates):
+    """
+    创建 Chat 提示模板。
+
+    参数:
+        message_templates (list): 包含 3 个字符串的消息模板列表 [sys, human, ai]。
+
+    返回:
+        ChatPromptTemplate: 创建的 Chat 提示模板。
+    """
+    return createChatPromptTemplate(message_templates)
+
+
+# 注册提示模板类型
+PromptFactory.register_prompt("fewshot", fewshot_creator)
+PromptFactory.register_prompt("chat", chat_creator)
+
+
+class PromptCreator:
+    """
+    PromptCreator 类用于动态生成提示模板（Prompt Template）。
+    通过调用 PromptFactory 提供的工厂方法，根据给定的类型和参数创建所需的提示模板。
+
+    Attributes:
+        prompt_type (str): 提示模板的类型（如 "fewshot" 或 "chat"）。
+        prompt_template (object): 创建的提示模板对象。
+    """
+
+    def __init__(self, prompt_type: str, **kwargs):
+        """
+        初始化 PromptCreator 实例。
+
+        参数:
+            prompt_type (str): 提示模板的类型。
+                               - "fewshot": 创建 Few-Shot 提示模板。
+                               - "chat": 创建 Chat 提示模板。
+            **kwargs: 用于创建指定类型提示模板的附加参数。
+                      - 对于 "fewshot"，可能需要 `isSelector` 参数。
+                      - 对于 "chat"，需要提供 `message_templates`。
+
+        属性:
+            self.prompt_type (str): 存储指定的提示模板类型。
+            self.prompt_template (object): 调用 PromptFactory 创建的提示模板对象。
+
+        异常:
+            ValueError: 如果提供的 prompt_type 未注册到 PromptFactory，将抛出异常。
+        """
+        self.prompt_type = prompt_type
+        self.prompt_template = PromptFactory.create_prompt(prompt_type, **kwargs)
+
+    def get_prompt_template(self):
+        """
+        获取生成的提示模板对象。
+
+        返回:
+            object: 当前实例中存储的提示模板对象，通常是 FewShotPromptTemplate 或 ChatPromptTemplate。
+
+        用途:
+            可用于直接查看或进一步操作生成的提示模板。
+        """
+        return self.prompt_template
+
+    def get_prompt(self, **kwargs):
+        """
+        根据模板和输入参数生成格式化的提示文本。
+
+        参数:
+            **kwargs: 用于格式化提示模板的键值对参数。
+                      - 必须包含提示模板中定义的所有变量（如 "flower_type", "occasion" 等）。
+
+        返回:
+            str: 根据提供的参数格式化后的提示文本。
+
+        异常:
+            KeyError: 如果提供的参数不匹配模板所需的变量，会抛出格式化错误。
+        """
+        return self.prompt_template.format(**kwargs)
+
+# print(createSelcetorFewShotPromptTemplate())
+samples = [
+        {
+            "flower_type": "玫瑰",
+            "occasion": "爱情",
+            "ad_copy": "玫瑰，浪漫的象征，是你向心爱的人表达爱意的最佳选择。",
+        },
+        {
+            "flower_type": "康乃馨",
+            "occasion": "母亲节",
+            "ad_copy": "康乃馨代表着母爱的纯洁与伟大，是母亲节赠送给母亲的完美礼物。",
+        },
+        {
+            "flower_type": "百合",
+            "occasion": "庆祝",
+            "ad_copy": "百合象征着纯洁与高雅，是你庆祝特殊时刻的理想选择。",
+        },
+        {
+            "flower_type": "向日葵",
+            "occasion": "鼓励",
+            "ad_copy": "向日葵象征着坚韧和乐观，是你鼓励亲朋好友的最好方式。",
+        },
+    ]
+
+createSelcetorFewShotPromptTemplate()

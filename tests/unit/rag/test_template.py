@@ -1,5 +1,10 @@
 import sys
-sys.path.append('/mnt/e/RAGbot')
+import os
+
+# 添加项目根目录到 sys.path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+sys.path.append(project_root)
+
 
 from rag_framework.prompt.template import *
 from rag_framework.model.Chat import * 
@@ -30,15 +35,57 @@ message_templates = [
     "{response}"
 ]
 
+def test_chat_template():
+    chat_creator = PromptCreator(prompt_type="chat", message_templates=[system_prompt_cot, human_template,"  "])
+    prompt = chat_creator.get_prompt_template()
+    print(f"测试 提示词模板:  {prompt}\n")
 
-
-def testcreateChatPromptTemplate():
-    prompt = createChatPromptTemplate([system_prompt_cot, human_template,"  "])
     prompt = prompt.format_prompt(
         human_input="我想为我的女朋友购买一些花。她喜欢粉色和紫色。你有什么建议吗?"
     ).to_messages() 
-    llm = createHuggingFaceChat()
+    llm = ChatModel("openai")
     # 接收用户的询问，返回回答结果
-    response = llm.invoke(prompt)
-    print(response)
-testcreateChatPromptTemplate()
+    response = llm.response(prompt)
+
+    print(f"测试  模型回复：  {response}\n")
+
+
+def test_fewshot_template():
+    fewshot_creator = PromptCreator(prompt_type="fewshot", isSelector=False)
+    fewshot_template = fewshot_creator.get_prompt_template()
+    print(f"测试 模板：  {fewshot_template}")
+
+    prompt = fewshot_creator.get_prompt_template().format_prompt(
+        flower_type='黄玫瑰',
+        occasion='忠贞'
+    )
+    print(f"测试 提示词： {prompt}")
+    
+    llm = ChatModel("openai")
+    # 接收用户的询问，返回回答结果
+    response = llm.response(prompt)
+
+    print(f"测试  模型回复：  {response}\n")
+
+def test_fewshot_selector_template():
+    fewshot_creator = PromptCreator(prompt_type="fewshot", isSelector=True)
+    fewshot_template = fewshot_creator.get_prompt_template()
+    print(f"测试 模板：  {fewshot_template}")
+
+    prompt = fewshot_creator.get_prompt_template().format_prompt(
+        flower_type='黄玫瑰',
+        occasion='忠贞'
+    )
+    
+    print(f"测试 提示词： {prompt}")
+    
+    llm = ChatModel("openai")
+    # 接收用户的询问，返回回答结果
+    response = llm.response(prompt)
+    print(f"测试  模型回复：  {response}\n")
+
+
+if __name__ == "__main__":
+  # test_chat_template()
+  # test_fewshot_template()
+  test_fewshot_selector_template()
