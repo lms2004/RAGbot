@@ -79,9 +79,60 @@ def test_json_parse():
     print("输出的数据：", df.to_dict(orient="records"))
 
 
+def test_jsonFix_parse():
+    class Flower(BaseModel):
+        name: str = Field(description="name of a flower")
+        colors: List[str] = Field(description="the colors of this flower")
 
+
+    # 定义一个用于获取某种花的颜色列表的查询
+    flower_query = "Generate the charaters for a random flower."
+
+    # 定义一个格式不正确的输出
+    misformatted = "{'name': '康乃馨', 'colors': ['粉红色','白色','红色','紫色','黄色']}"
+    # output_parser = OutputParser("json", Flower)
+    
+    # print(output_parser.parse(misformatted))
+
+    # 创建一个用于解析输出的Pydantic解析器，此处希望解析为Flower格式
+    parser = OutputParser("jsonFix", Flower)
+    # 解析格式不正确的输出
+    print(parser.parse(misformatted))
+    
+def test_jsonRetry_parse():
+    # 定义一个模板字符串，这个模板将用于生成提问
+    template = """Based on the user question, provide an Action and Action Input for what step should be taken.
+    {format_instructions}
+    Question: {query}
+    Response:"""
+    class Action(BaseModel):
+        action: str = Field(description="action to take")
+        action_input: str = Field(description="input to the action")
+
+
+    parserRetry = OutputParser("jsonRetry", Action)
+    parserFix = OutputParser("jsonFix", Action)
+
+    prompt = PromptTemplate(
+        template="Answer the user query.\n{format_instructions}\n{query}\n",
+        input_variables=["query"],
+        partial_variables={"format_instructions": parserRetry.get_format_instructions()},
+    )
+
+    prompt_value = prompt.format_prompt(query="What are the colors of Orchid?")
+
+    # 定义一个错误格式的字符串
+    bad_response = '{"action": "search"}'
+    
+
+    # 解析格式不正确的输出
+    print(parserFix.parse(bad_response))
+
+    print(parserRetry.parse(bad_response, prompt=prompt_value))
 
 if __name__ == "__main__":
     # test_json_parse()
     # test_json_instructions()
+    # test_jsonFix_parse()
+    test_jsonRetry_parse()
     pass
