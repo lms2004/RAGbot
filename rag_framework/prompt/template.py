@@ -80,6 +80,25 @@ def createSelector(samples):
     
     return example_selector
 
+def create_CustInstr_PromptTemplate(prompt_template, output_parser):
+    """
+    创建并初始化一个输出解析器（output_parser），用于解析模型生成的输出。
+        参数:
+            prompt_template (str): 包含输出解析器的提示模板。
+            output_parser (output_parser): 用于解析模型输出的输出解析器对象。
+        返回:
+            PromptTemplate: 初始化后的 PromptTemplate 对象，用于格式化提示。
+        示例：
+            output_parser = output_parser("json", FlowerDescription)
+            create_output_parser_PromptTemplate(prompt_template, output_parser)
+    """
+    # 创建一个 PromptTemplate 对象
+    # 根据模板创建提示，同时在提示中加入输出解析器的说明
+    prompt = PromptTemplate.from_template(
+        prompt_template, partial_variables={"format_instructions": output_parser.get_format_instructions()}
+    )
+    return prompt
+
 
 # ChatPromptTemplate 
 def createChatPromptTemplate(message_templates):
@@ -226,6 +245,22 @@ class PromptFactory:
         return cls._creators[prompt_type](**kwargs)
 
 
+def Cust_creator(prompt_template):
+    """
+    创建自定义提示模板。
+    返回:
+        PromptTemplate: 创建的自定义提示模板。
+    """
+    return PromptTemplate.from_template(prompt_template)
+
+def CustInstr_creator(prompt_template, output_parser):
+    """
+    创建自定义指令型提示模板。
+    返回:
+        PromptTemplate: 创建的自定义指令型提示模板。
+    """
+    return create_CustInstr_PromptTemplate(prompt_template, output_parser)
+
 # 注册 Few-Shot Prompt 的创建逻辑
 def fewshot_creator(isSelector: bool = False):
     """
@@ -257,6 +292,8 @@ def chat_creator(message_templates):
 
 
 # 注册提示模板类型
+PromptFactory.register_prompt("cust", Cust_creator)
+PromptFactory.register_prompt("custInstr", CustInstr_creator)
 PromptFactory.register_prompt("fewshot", fewshot_creator)
 PromptFactory.register_prompt("chat", chat_creator)
 
@@ -305,44 +342,21 @@ class PromptCreator:
         """
         return self.prompt_template
 
-    def get_prompt(self, **kwargs):
+    def get_prompt(self, input_schema_names, data: List):
         """
-        根据模板和输入参数生成格式化的提示文本。
-
+        根据输入数据生成提示。
         参数:
-            **kwargs: 用于格式化提示模板的键值对参数。
-                      - 必须包含提示模板中定义的所有变量（如 "flower_type", "occasion" 等）。
-
+            input_schema_names (list): 输入数据的字段名列表。
+            data (list): 输入数据，与输入模式一一对应。
         返回:
-            str: 根据提供的参数格式化后的提示文本。
-
-        异常:
-            KeyError: 如果提供的参数不匹配模板所需的变量，会抛出格式化错误。
+            str: 生成的提示字符串。
         """
-        return self.prompt_template.format(**kwargs)
+        input_data = {}
 
-# print(createSelcetorFewShotPromptTemplate())
-samples = [
-        {
-            "flower_type": "玫瑰",
-            "occasion": "爱情",
-            "ad_copy": "玫瑰，浪漫的象征，是你向心爱的人表达爱意的最佳选择。",
-        },
-        {
-            "flower_type": "康乃馨",
-            "occasion": "母亲节",
-            "ad_copy": "康乃馨代表着母爱的纯洁与伟大，是母亲节赠送给母亲的完美礼物。",
-        },
-        {
-            "flower_type": "百合",
-            "occasion": "庆祝",
-            "ad_copy": "百合象征着纯洁与高雅，是你庆祝特殊时刻的理想选择。",
-        },
-        {
-            "flower_type": "向日葵",
-            "occasion": "鼓励",
-            "ad_copy": "向日葵象征着坚韧和乐观，是你鼓励亲朋好友的最好方式。",
-        },
-    ]
+        # 填充 input_data 字典
+        for i in range(len(input_schema_names)):
+            input_data[input_schema_names[i]] = data[i]
 
-createSelcetorFewShotPromptTemplate()
+        # 使用字典解包填充模板
+        return self.prompt_template.format(**input_data)
+

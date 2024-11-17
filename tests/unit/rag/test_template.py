@@ -8,7 +8,7 @@ sys.path.append(project_root)
 
 from rag_framework.prompt.template import *
 from rag_framework.model.Chat import * 
-
+from rag_framework.output_parser.data_parser import *
 
 # CoT 的关键部分，AI 解释推理过程，并加入一些先前的对话示例（Few-Shot Learning）
 system_prompt_cot = """
@@ -26,6 +26,8 @@ system_prompt_cot = """
   AI：从你的需求中，我理解你想要的是独一无二和引人注目的花朵。兰花是一种非常独特并且颜色鲜艳的花，它们在世界上的许多地方都被视为奢侈品和美的象征。因此，我建议你考虑兰花。选择兰花可以满足你对独特和奇特的要求，而且，兰花的美丽和它们所代表的力量和奢侈也可能会吸引你。
 """
 
+
+
 # 用户的询问
 human_template = "{human_input}"
 ai_template = "{output}"
@@ -34,6 +36,45 @@ message_templates = [
     "What flowers are good for a wedding?",
     "{response}"
 ]
+
+# 定义我们想要接收的数据格式
+from pydantic import BaseModel, Field
+class FlowerDescription(BaseModel):
+    flower_type: str = Field(description="鲜花的种类")
+    price: int = Field(description="鲜花的价格")
+    description: str = Field(description="鲜花的描述文案")
+    reason: str = Field(description="为什么要这样写这个文案")
+
+def test_Cust_template():
+    PromptTemplate = """您是一位专业的鲜花店文案撰写员。
+    对于售价为 {price} 元的 {flower} ，您能提供一个吸引人的简短中文描述吗？
+    """
+    # 实例化一个 PromptCreator 对象，指定模板类型为 "cust"
+    creator = PromptCreator(prompt_type="cust", prompt_template=PromptTemplate)
+    prompt = creator.get_prompt_template()
+    print(f"测试 模板：  {prompt}")
+
+    input_schema_names = ["price","flower"]
+    data = [100, "玫瑰"]
+
+    print(f"测试 提示词：{creator.get_prompt(input_schema_names, data)}")
+
+def test_CustInstr_template():
+    PromptTemplate = """您是一位专业的鲜花店文案撰写员。
+    对于售价为 {price} 元的 {flower} ，您能提供一个吸引人的简短中文描述吗？
+    {format_instructions}"""
+
+    output_parser = OutputParser("json", FlowerDescription)
+
+    # 实例化一个 PromptCreator 对象，指定模板类型为 "cust"
+    creator = PromptCreator(prompt_type="custInstr", prompt_template=PromptTemplate, output_parser=output_parser)
+    prompt = creator.get_prompt_template()
+    print(f"测试 模板：  {prompt}")
+    
+    input_schema_names = ["price","flower"]
+    data = [100, "玫瑰"]
+
+    print(f"测试 提示词：{creator.get_prompt(input_schema_names, data)}")
 
 def test_chat_template():
     chat_creator = PromptCreator(prompt_type="chat", message_templates=[system_prompt_cot, human_template,"  "])
@@ -48,7 +89,6 @@ def test_chat_template():
     response = llm.response(prompt)
 
     print(f"测试  模型回复：  {response}\n")
-
 
 def test_fewshot_template():
     fewshot_creator = PromptCreator(prompt_type="fewshot", isSelector=False)
@@ -86,6 +126,8 @@ def test_fewshot_selector_template():
 
 
 if __name__ == "__main__":
-  # test_chat_template()
-  # test_fewshot_template()
-  test_fewshot_selector_template()
+    test_Cust_template()
+    test_CustInstr_template()
+    # test_chat_template()
+    # test_fewshot_template()
+    # test_fewshot_selector_template()

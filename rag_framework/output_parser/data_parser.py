@@ -55,19 +55,16 @@ class OutputParser:
         """
         return self.parser.get_format_instructions()
 
-    def parse(self, output: str) -> dict:
+    def parse(self, output: str):
         """
-        解析语言模型的输出，将其转化为特定的数据格式。
-
+        解析语言模型输出，将其转化为指定的数据格式。
         Args:
-            output (str): 语言模型的输出字符串。
-
+            output (str): 语言模型输出的字符串。
         Returns:
-            dict: 解析后的输出数据，以字典形式返回。
-
+            dict: 解析后的结构化数据字典。
         Example:
             parser = OutputParser(outputType="json", ObjectType=YourPydanticModel)
             parsed_output = parser.parse(output)
-            print("解析后的输出：", parsed_output)
+            print("解析结果：", parsed_output)
         """
         return self.parser.parse(output)

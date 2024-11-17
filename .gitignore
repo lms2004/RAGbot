@@ -1,7 +1,7 @@
-# 忽略缓存和日志文件
+# 忽略 Python 编译文件和缓存目录
 *.pyc
 __pycache__/
 
-# 忽略 gpt2 和 Llama-2-7b-chat-hf 目录
-model/Models/gpt2/
-model/Models/Llama-2-7b-chat-hf/
+# 忽略模型文件夹及其内容
+rag_framework/model/Models/gpt2/
+rag_framework/model/Models/Llama-2-7b-chat-hf/
