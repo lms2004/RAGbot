@@ -27,7 +27,7 @@ prompt_template = """您是一位专业的鲜花店文案撰写员。
 
 
 def test_json_instructions():
-    output_parser = output_parser("json", FlowerDescription)
+    output_parser = OutputParser("json", FlowerDescription)
 
     # 测试 get_format_instructions 方法
     print(output_parser.get_format_instructions())
@@ -130,9 +130,15 @@ def test_jsonRetry_parse():
 
     print(parserRetry.parse(bad_response, prompt=prompt_value))
 
-if __name__ == "__main__":
-    # test_json_parse()
-    # test_json_instructions()
+
+
+if __name__ == "__main__":    
+    test_json_instructions()
+    
+
+    
+    test_json_parse()
+
     # test_jsonFix_parse()
-    test_jsonRetry_parse()
+    # test_jsonRetry_parse()
     pass

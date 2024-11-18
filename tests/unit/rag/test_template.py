@@ -1,3 +1,4 @@
+import ast
 import sys
 import os
 
@@ -46,35 +47,48 @@ class FlowerDescription(BaseModel):
     reason: str = Field(description="为什么要这样写这个文案")
 
 def test_Cust_template():
-    PromptTemplate = """您是一位专业的鲜花店文案撰写员。
+    prompt_template = """您是一位专业的鲜花店文案撰写员。
     对于售价为 {price} 元的 {flower} ，您能提供一个吸引人的简短中文描述吗？
     """
     # 实例化一个 PromptCreator 对象，指定模板类型为 "cust"
-    creator = PromptCreator(prompt_type="cust", prompt_template=PromptTemplate)
+    creator = PromptCreator(prompt_type="cust", prompt_template=prompt_template, input_variables=["price","flower"])
     prompt = creator.get_prompt_template()
     print(f"测试 模板：  {prompt}")
 
     input_schema_names = ["price","flower"]
     data = [100, "玫瑰"]
-
     print(f"测试 提示词：{creator.get_prompt(input_schema_names, data)}")
 
+
+    parser = PydanticOutputParser(pydantic_object=FlowerDescription)
+    # print(f"测试 模板：  {prompt}")
+
+    # input_schema_names = ["price","flower"]
+    # data = [100, "玫瑰"]
+
+    # print(f"测试 提示词：{creator.get_prompt(input_schema_names, data)}")
+
 def test_CustInstr_template():
-    PromptTemplate = """您是一位专业的鲜花店文案撰写员。
+    prompt_template = """您是一位专业的鲜花店文案撰写员。
     对于售价为 {price} 元的 {flower} ，您能提供一个吸引人的简短中文描述吗？
-    {format_instructions}"""
+
+    输出格式要求：
+    {format_instructions}
+    """
 
     output_parser = OutputParser("json", FlowerDescription)
 
     # 实例化一个 PromptCreator 对象，指定模板类型为 "cust"
-    creator = PromptCreator(prompt_type="custInstr", prompt_template=PromptTemplate, output_parser=output_parser)
+    creator = PromptCreator(prompt_type="custInstr",
+                            prompt_template=prompt_template,
+                            output_parser=output_parser,
+                            input_variables=["price","flower"]
+                            )
+    
     prompt = creator.get_prompt_template()
     print(f"测试 模板：  {prompt}")
-    
-    input_schema_names = ["price","flower"]
-    data = [100, "玫瑰"]
 
-    print(f"测试 提示词：{creator.get_prompt(input_schema_names, data)}")
+
 
 def test_chat_template():
     chat_creator = PromptCreator(prompt_type="chat", message_templates=[system_prompt_cot, human_template,"  "])
@@ -126,7 +140,7 @@ def test_fewshot_selector_template():
 
 
 if __name__ == "__main__":
-    test_Cust_template()
+    # test_Cust_template()
     test_CustInstr_template()
     # test_chat_template()
     # test_fewshot_template()

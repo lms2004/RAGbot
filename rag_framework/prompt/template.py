@@ -1,3 +1,5 @@
+import ast
+import json
 from typing import List
 from langchain.prompts import PipelinePromptTemplate, FewShotPromptTemplate
 from langchain_core.prompts import PromptTemplate
@@ -80,7 +82,7 @@ def createSelector(samples):
     
     return example_selector
 
-def create_CustInstr_PromptTemplate(prompt_template, output_parser):
+def create_CustInstr_PromptTemplate(prompt_template, output_parser, **kwargs):
     """
     创建并初始化一个输出解析器（output_parser），用于解析模型生成的输出。
         参数:
@@ -92,11 +94,25 @@ def create_CustInstr_PromptTemplate(prompt_template, output_parser):
             output_parser = output_parser("json", FlowerDescription)
             create_output_parser_PromptTemplate(prompt_template, output_parser)
     """
-    # 创建一个 PromptTemplate 对象
-    # 根据模板创建提示，同时在提示中加入输出解析器的说明
-    prompt = PromptTemplate.from_template(
-        prompt_template, partial_variables={"format_instructions": output_parser.get_format_instructions()}
-    )
+    # 获取 format_instructions 的内容
+    format_instructions = output_parser.get_format_instructions()
+
+
+    # 将单引号字符串解析为 Python 字典
+    python_dict = ast.literal_eval(str(format_instructions))
+
+    # 提取 description 字段
+    description_only = {key: value['description'] for key, value in python_dict.items() if 'description' in value}
+
+    # 转换为 JSON 格式字符串
+    description_json = json.dumps(description_only, ensure_ascii=False, indent=2)
+    description_json = description_json.replace("{", "{{").replace("}", "}}")
+    print(PromptTemplate(template=description_json))
+    # 获取输出解析器的格式说明
+    filled_template = prompt_template.replace("{format_instructions}",str(format_instructions))
+
+    # 创建 PromptTemplate 对象
+    prompt = PromptTemplate(template=filled_template,partial_variables= {**kwargs})
     return prompt
 
 
@@ -245,15 +261,15 @@ class PromptFactory:
         return cls._creators[prompt_type](**kwargs)
 
 
-def Cust_creator(prompt_template):
+def Cust_creator(prompt_template, **kwargs):
     """
     创建自定义提示模板。
     返回:
         PromptTemplate: 创建的自定义提示模板。
     """
-    return PromptTemplate.from_template(prompt_template)
+    return PromptTemplate(template=prompt_template, **kwargs)
 
-def CustInstr_creator(prompt_template, output_parser):
+def CustInstr_creator(prompt_template, output_parser, **kwargs):
     """
     创建自定义指令型提示模板。
     返回:
@@ -342,7 +358,7 @@ class PromptCreator:
         """
         return self.prompt_template
 
-    def get_prompt(self, input_schema_names, data: List):
+    def get_prompt(self, input_schema_names=None, data=None):
         """
         根据输入数据生成提示。
         参数:
@@ -351,12 +367,13 @@ class PromptCreator:
         返回:
             str: 生成的提示字符串。
         """
-        input_data = {}
+        if input_schema_names is not None and data is None:
+            # 构造 input_data 字典
+            input_data = {name: f"{{{name}}}" for name in input_schema_names}
 
-        # 填充 input_data 字典
-        for i in range(len(input_schema_names)):
-            input_data[input_schema_names[i]] = data[i]
-
+            return self.prompt_template.format(**input_data)
+        
+        input_data = dict(zip(input_schema_names, data))
         # 使用字典解包填充模板
         return self.prompt_template.format(**input_data)
 

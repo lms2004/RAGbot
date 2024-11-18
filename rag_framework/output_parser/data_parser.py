@@ -1,4 +1,5 @@
 # 标准库导入
+import json
 from typing import Type
 
 from langchain.output_parsers import PydanticOutputParser, OutputFixingParser,RetryWithErrorOutputParser
@@ -74,8 +75,20 @@ class OutputParser:
             format_instructions = parser.get_format_instructions()
             print("输出格式指令：", format_instructions)
         """
-        return self.parser.get_format_instructions()
+        instructions = (self.parser.get_format_instructions())
 
+        # 提取 JSON schema 部分
+        start = instructions.find("```") + 3
+        end = instructions.rfind("```")
+        schema_str = instructions[start:end].strip()
+
+        # 转换为字典
+        schema = (json.loads(schema_str)).get("properties",{})
+
+        return schema
+
+    def get_parser(self):
+        return self.parser
     def parse(self, output: str, **args) -> dict:
         """
         解析语言模型输出为结构化数据。
