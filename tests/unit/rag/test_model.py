@@ -99,34 +99,32 @@ template1 = """
 花名: {name}
 颜色: {color}
 
-格式说明：
+请确保以下是严格的 JSON 格式输出：
 {format_instructions}
-
-植物学家: 这是关于上述花的介绍:"""
+"""
 
 # 第二个LLMChain：根据鲜花的介绍写出鲜花的评论
 template2 = """
 你是一位鲜花评论家。给定一种花的介绍，你需要为这种花写一篇200字左右的评论。
-
-格式说明：
-{format_instructions}
-
 鲜花介绍:
 {introduction}
-花评人对上述花的评论:"""
+
+
+请确保以下是严格的 JSON 格式输出：
+{format_instructions}
+"""
 
 # 第三个LLMChain：根据鲜花的介绍和评论写出一篇自媒体的文案
 template3 = """
 你是一家花店的社交媒体经理。给定一种花的介绍和评论，你需要为这种花写一篇社交媒体的帖子，300字左右。
-
-格式说明：
-{format_instructions}
-
 鲜花介绍:
 {introduction}
 花评人对上述花的评论:
 {review}
-社交媒体帖子:
+
+
+请确保以下是严格的 JSON 格式输出：
+{format_instructions}
 """
 
 def test_ChatModelChain_getSequentialChain():
@@ -135,7 +133,7 @@ def test_ChatModelChain_getSequentialChain():
 
     # 输出模型：定义第一个链的输出
     class IntroductionOutput(BaseModel):
-        introduction: str = Field(description="鲜花的详细介绍文案（请根据花的种类和对应的颜色）")
+        introduction: str = Field(description="关于该花的介绍")
 
     # 输出模型：定义第二个链的输出
     class ReviewOutput(BaseModel):
@@ -181,8 +179,8 @@ def test_ChatModelChain_getSequentialChain():
     print(result)
 
 if __name__ == "__main__":
-    test_ChatModelChain_getSingleChain()
-    # test_ChatModelChain_getSequentialChain()
+    # test_ChatModelChain_getSingleChain()
+    test_ChatModelChain_getSequentialChain()
 
 
 

@@ -102,11 +102,13 @@ llm = ChatOpenAI(
 
 # 调整指令，明确要求输出 JSON 格式
 introduction_prompt_template = """
+你是一个植物学家。给定花的名称和类型，你需要为这种花写一个200字左右的介绍。
+花名: {name}
+颜色: {color}
 
 
 请确保以下是严格的 JSON 格式输出：
 {{
-  "content": "花名和颜色的描述",
   "introduction": "关于该花的介绍"
 }}
 """
@@ -121,6 +123,8 @@ print(introduction_prompt)
 
 introduction_parser = JsonOutputParser(pydantic_object=IntroductionModel)
 introduction_chain = introduction_prompt | llm | introduction_parser
+response = introduction_chain.invoke({"name": "玫瑰", "color": "黑色"})
+print(response)
 
 review_prompt_template = """
 你是一位鲜花评论家。根据鲜花的介绍，你需要为这种花写一篇200字左右的评论。
@@ -136,6 +140,10 @@ review_prompt_template = """
 review_prompt = PromptTemplate.from_template(review_prompt_template)
 review_parser = JsonOutputParser(pydantic_object=ReviewModel)
 review_chain = review_prompt | llm | review_parser
+
+response = review_chain.invoke(response)
+print(response)
+
 
 social_post_prompt_template = """
 你是一家花店的社交媒体经理。给定一种花的介绍和评论，你需要为这种花写一篇社交媒体的帖子，300字左右。
@@ -156,6 +164,10 @@ social_post_prompt = PromptTemplate.from_template(social_post_prompt_template)
 print(social_post_prompt)
 social_post_parser = JsonOutputParser(pydantic_object=SocialPostModel)
 social_post_chain = social_post_prompt | llm | social_post_parser
+
+response = social_post_chain.invoke(response)
+print(response)
+
 
 # 按顺序运行三个链
 overall_chain = introduction_chain | review_chain | social_post_chain

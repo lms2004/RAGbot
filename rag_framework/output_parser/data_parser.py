@@ -3,7 +3,7 @@ import json
 from typing import Type
 
 from langchain.output_parsers import PydanticOutputParser, OutputFixingParser,RetryWithErrorOutputParser
-
+from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
 from langchain_openai import ChatOpenAI
 
 import os
@@ -41,6 +41,9 @@ class OutputParser:
         """
         self.outputType = outputType
         if outputType == "json" and ObjectType is not None:
+            # 配置标准 JSON 解析器
+            self.parser = JsonOutputParser(pydantic_object=ObjectType)
+        elif outputType == "jsonPlus" and ObjectType is not None:
             # 配置标准 Pydantic 解析器
             self.parser = PydanticOutputParser(pydantic_object=ObjectType)
         elif outputType == "jsonFix" and ObjectType is not None:

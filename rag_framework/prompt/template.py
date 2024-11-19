@@ -107,9 +107,9 @@ def create_CustInstr_PromptTemplate(prompt_template, output_parser, **kwargs):
     # 转换为 JSON 格式字符串
     description_json = json.dumps(description_only, ensure_ascii=False, indent=2)
     description_json = description_json.replace("{", "{{").replace("}", "}}")
-    print(PromptTemplate(template=description_json))
+    
     # 获取输出解析器的格式说明
-    filled_template = prompt_template.replace("{format_instructions}",str(format_instructions))
+    filled_template = prompt_template.replace("{format_instructions}",str(description_json))
 
     # 创建 PromptTemplate 对象
     prompt = PromptTemplate(template=filled_template,partial_variables= {**kwargs})

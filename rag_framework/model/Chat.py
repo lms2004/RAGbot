@@ -203,71 +203,20 @@ class ChatModelChain:
         return create_llm_chain(self.llm, prompt, parser)
     
     def getSequentialChain(self, prompts:list, output_models:list):
-        
-        # introduction_chain = prompts[0] | self.llm | OutputParser("json", output_models[0]).get_parser()
-
-        # review_chain = prompts[1] | self.llm | OutputParser("json", output_models[1]).get_parser()
-
-        # social_post_chain = prompts[2] | self.llm | OutputParser("json", output_models[2]).get_parser()
-
-        # # 按顺序运行三个链
-        # overall_chain = introduction_chain | review_chain | social_post_chain
-
-        # 调整指令，明确要求输出 JSON 格式
-        introduction_prompt_template = """
-        你是一个植物学家。给定花的名称和颜色，你需要为这种花写一个200字左右的介绍。
-        花名: {name}
-        颜色: {color}
-
-        请确保以下是严格的 JSON 格式输出：
-        {{
-        "content": "花名和颜色的描述",
-        "introduction": "关于该花的介绍"
-        }}
         """
-
-        introduction_prompt = PromptTemplate.from_template(introduction_prompt_template)
-        introduction_chain = prompts[0] | self.llm | OutputParser('json', output_models[0]).get_parser()
-        response = introduction_chain.invoke({"name": "玫瑰", "color": "红色"})
-        print(response)
-
-        review_prompt_template = """
-        你是一位鲜花评论家。根据鲜花的介绍，你需要为这种花写一篇200字左右的评论。
-        鲜花介绍:
-        {introduction}
-
-        请确保以下是严格的 JSON 格式输出：
-        {{
-        "introduction": "鲜花介绍",
-        "review": "针对鲜花的评论"
-        }}
+        创建一个基于 SequentialChain 的聊天模型链。
+            参数:
+                prompts (list): 用于生成聊天模型输入的提示模板列表。
+                output_models (list): 用于生成聊天模型输入的提示模板列表。
+            返回:
+                SequentialChain: 配置完成的 SequentialChain 实例。
         """
-        review_prompt = PromptTemplate.from_template(review_prompt_template)
+        introduction_chain = prompts[0]  | self.llm |  OutputParser('json', output_models[0]).get_parser()
+
         review_chain = prompts[1] | self.llm | OutputParser('json', output_models[1]).get_parser()
         
-        
-        response = review_chain.invoke(response.dict())
-        print(response)
-
-        social_post_prompt_template = """
-        你是一家花店的社交媒体经理。给定一种花的介绍和评论，你需要为这种花写一篇社交媒体的帖子，300字左右。
-        鲜花介绍:
-        {introduction}
-        花评人对上述花的评论:
-        {review}
-
-        请确保以下是严格的 JSON 格式输出：
-        {{
-        "introduction": "鲜花介绍",
-        "review": "针对鲜花的评论",
-        "social_post_text": "社交媒体帖子内容"
-        }}
-        """
-        social_post_prompt = PromptTemplate.from_template(social_post_prompt_template)
-
         social_post_chain = prompts[2] | self.llm | OutputParser('json', output_models[2]).get_parser()
-        response = social_post_chain.invoke(response.dict())
-        print(response)
+
         # 按顺序运行三个链
         overall_chain = introduction_chain | review_chain | social_post_chain
 
