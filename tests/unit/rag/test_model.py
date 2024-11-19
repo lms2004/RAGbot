@@ -178,10 +178,115 @@ def test_ChatModelChain_getSequentialChain():
     # 输出结果
     print(result)
 
+
+def test_ChatModelChain_getChainMap():
+    # 构建两个场景的模板
+    flower_care_template = """
+    你是一个经验丰富的园丁，擅长解答关于养花育花的问题。
+    下面是需要你来回答的问题:
+    {input}
+    """
+
+    flower_deco_template = """
+    你是一位网红插花大师，擅长解答关于鲜花装饰的问题。
+    下面是需要你来回答的问题:
+    {input}
+    """
+
+    templates = [flower_care_template, flower_deco_template]
+    keys = ["flower_care", "flower_decoration"]
+    descriptions = ["适合回答关于鲜花护理的问题", "适合回答关于鲜花装饰的问题"]
+
+    prompt_infos = PromptCreator(
+        prompt_type="router_infos", 
+        keys=keys, 
+        descriptions=descriptions,
+        templates=templates
+    ).get_prompt_template()
+
+    chain_map = ChatModelChain().getChainsMap(prompt_infos)
+
+
+def test_ChatModelChain_getRouterChain():
+    # 构建两个场景的模板
+    flower_care_template = """
+    你是一个经验丰富的园丁，擅长解答关于养花育花的问题。
+    下面是需要你来回答的问题:
+    {input}
+    """
+
+    flower_deco_template = """
+    你是一位网红插花大师，擅长解答关于鲜花装饰的问题。
+    下面是需要你来回答的问题:
+    {input}
+    """
+
+    templates = [flower_care_template, flower_deco_template]
+    keys = ["flower_care", "flower_decoration"]
+    descriptions = ["适合回答关于鲜花护理的问题", "适合回答关于鲜花装饰的问题"]
+
+    Router_infos = PromptCreator(
+        prompt_type="router_infos",
+        keys=keys,
+        descriptions=descriptions,
+        templates=templates
+    ).get_prompt_template()
+    Router_creator_prompt = PromptCreator(
+        prompt_type="router",
+        prompt_infos=Router_infos
+    ).get_prompt()
+
+
+    Router_Chain = ChatModelChain().getRouterChain(Router_creator_prompt)
+
+
+def test_ChatModelChain_getDefaultChain():
+    default_chain = ChatModelChain().getDefaultChain()
+
+
+def test_ChatModelChain_getMutipleRouterChain():
+    import warnings
+    import os
+    warnings.filterwarnings("ignore")
+
+    # 设置OpenAI API密钥
+
+    # 构建两个场景的模板
+    flower_care_template = """
+    你是一个经验丰富的园丁，擅长解答关于养花育花的问题。
+    下面是需要你来回答的问题:
+    {input}
+    """
+
+    flower_deco_template = """
+    你是一位网红插花大师，擅长解答关于鲜花装饰的问题。
+    下面是需要你来回答的问题:
+    {input}
+    """
+
+    templates = [flower_care_template, flower_deco_template]
+    keys = ["flower_care", "flower_decoration"]
+    descriptions = ["适合回答关于鲜花护理的问题", "适合回答关于鲜花装饰的问题"]
+
+    chain = ChatModelChain().getMutipleRouterChain(
+        keys=keys,
+        descriptions=descriptions,
+        templates=templates
+    )
+
+    # 测试1
+    print(chain.invoke("如何为玫瑰浇水？"))
+    # 测试2
+    print(chain.invoke("如何为婚礼场地装饰花朵？"))
+    # 测试3
+    print(chain.invoke("如何区分阿豆和罗豆？"))
+
+
 if __name__ == "__main__":
     # test_ChatModelChain_getSingleChain()
-    test_ChatModelChain_getSequentialChain()
-
-
-
+    # test_ChatModelChain_getSequentialChain()
+    # test_ChatModelChain_getChainMap()
+    # test_ChatModelChain_getRouterChain()
+    # test_ChatModelChain_getDefaultChain()
+    test_ChatModelChain_getMutipleRouterChain()
 

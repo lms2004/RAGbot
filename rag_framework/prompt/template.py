@@ -3,6 +3,11 @@ import json
 from typing import List
 from langchain.prompts import PipelinePromptTemplate, FewShotPromptTemplate
 from langchain_core.prompts import PromptTemplate
+# 构建路由链
+from langchain.chains.router.llm_router import LLMRouterChain, RouterOutputParser
+from langchain.chains.router.multi_prompt_prompt import (
+    MULTI_PROMPT_ROUTER_TEMPLATE as RounterTemplate,
+)
 
 from pydantic import BaseModel  # 使用 pydantic v2 的 BaseModel
 
@@ -307,11 +312,40 @@ def chat_creator(message_templates):
     return createChatPromptTemplate(message_templates)
 
 
+def Router_Infos_creator(keys, descriptions, templates, **kwargs):
+    """
+    创建路由提示模板。
+    返回:
+        RouterPromptTemplate: 创建的路由提示模板。
+    """
+    templates_ = []
+    for i in range(len(templates)):
+        template = {
+            "key": keys[i],
+            "description": descriptions[i],
+            "template": templates[i],
+            **kwargs
+        }
+        templates_.append(template)
+
+
+    return templates_
+
+def Router_creator(prompt_infos, **kwargs):
+    destinations = [f"{p['key']}: {p['description']}" for p in prompt_infos]
+    router_template = RounterTemplate.format(destinations="\n".join(destinations))
+    
+    # 构建路由提示模板,选择不同路由下模板（选择作用的模板）
+
+    return router_template
+
 # 注册提示模板类型
 PromptFactory.register_prompt("cust", Cust_creator)
 PromptFactory.register_prompt("custInstr", CustInstr_creator)
 PromptFactory.register_prompt("fewshot", fewshot_creator)
 PromptFactory.register_prompt("chat", chat_creator)
+PromptFactory.register_prompt("router_infos", Router_Infos_creator)
+PromptFactory.register_prompt("router", Router_creator)
 
 
 class PromptCreator:
@@ -367,6 +401,18 @@ class PromptCreator:
         返回:
             str: 生成的提示字符串。
         """
+        if self.prompt_type == "router":
+            router_prompt = PromptTemplate(
+                template=self.prompt_template,
+                input_variables=["input"],
+                output_parser=RouterOutputParser(),
+            )
+            return router_prompt
+        
+        if input_schema_names is None and data is None:
+            raise ValueError("Both input_schema_names and data cannot be None.")
+        
+        # 检查 input_schema_names 和 data 是否都为空或都不为空
         if input_schema_names is not None and data is None:
             # 构造 input_data 字典
             input_data = {name: f"{{{name}}}" for name in input_schema_names}

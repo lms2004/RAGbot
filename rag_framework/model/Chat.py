@@ -1,26 +1,19 @@
 import os
-from langchain_openai import ChatOpenAI
-from langchain.chains.llm import LLMChain
-from langchain.chains import SequentialChain
-from langchain_core.runnables import RunnableLambda, RunnableSequence
-
-
-from rag_framework.output_parser.data_parser import OutputParser
-# from langchain_huggingface import HuggingFaceEndpoint
-
-
-
-
-
-
-
-
-import os
-from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
-from pydantic import BaseModel
 
+
+from langchain.chains.router.llm_router import LLMRouterChain
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain.chains import ConversationChain  # 构建默认链
+from langchain.chains.llm import LLMChain
+# 构建多提示链
+from langchain.chains.router import MultiPromptChain
+
+# from langchain_huggingface import HuggingFaceEndpoint
+from langchain_openai import ChatOpenAI
+
+from rag_framework.output_parser.data_parser import *
+from rag_framework.prompt.template import PromptCreator
 
 
 
@@ -51,7 +44,7 @@ def create_huggingface_chat(repo_id="google/flan-t5-large"):
     # TODO: 替换 None 为 HuggingFace 模型接口的实现。
     return None
 
-def create_llm_chain(llm, prompt, parser=None):
+def create_llm_chain(prompt, llm, parser=None):
     """
     创建一个基于 LLMChain 的聊天模型链。
         参数:
@@ -67,6 +60,8 @@ def create_llm_chain(llm, prompt, parser=None):
                 返回:
                     object: 聊天模型生成的完整响应对象。
     """
+    if parser is None:
+        return prompt | llm
     return prompt | llm | parser
 
 
@@ -200,7 +195,7 @@ class ChatModelChain:
             返回:
                 LLMChain: 配置完成的 LLMChain 实例。
         """
-        return create_llm_chain(self.llm, prompt, parser)
+        return create_llm_chain(prompt, self.llm, parser)
     
     def getSequentialChain(self, prompts:list, output_models:list):
         """
@@ -211,13 +206,92 @@ class ChatModelChain:
             返回:
                 SequentialChain: 配置完成的 SequentialChain 实例。
         """
-        introduction_chain = prompts[0]  | self.llm |  OutputParser('json', output_models[0]).get_parser()
+        # 确保 prompts 和 output_models 的数量一致
+        if len(prompts) != len(output_models):
+            raise ValueError("The length of prompts and output_models must match!")
 
-        review_chain = prompts[1] | self.llm | OutputParser('json', output_models[1]).get_parser()
+        # 初始化第一个链
+        current_chain = prompts[0] | self.llm | OutputParser('json', output_models[0]).get_parser()
+
+        # 动态连接其余的链
+        for i in range(1, len(prompts)):
+            next_chain = prompts[i] | self.llm | OutputParser('json', output_models[i]).get_parser()
+            current_chain = current_chain | next_chain
+
+
+        return current_chain
+    
+    def getChainsMap(self, prompt_infos):
+        """
+        创建一个基于 ChainMap 的聊天模型链。
+            参数:
+                chains (list): 用于生成聊天模型输入的提示模板列表。
+            返回:
+                ChainMap: 配置完成的 ChainMap 实例。
+        """
+        chain_map = {}
+
+        for info in prompt_infos:
+            prompt = PromptTemplate(template=info["template"], input_variables=["input"])
+
+            chain = LLMChain(llm=self.llm, prompt=prompt, verbose=True)
+            chain_map[info["key"]] = chain
+        return chain_map
+
+
+    def getRouterChain(self, router_prompt):
+
+        """
+        创建一个基于 LLMRouterChain 的聊天模型链。
+            参数:
+                router_prompt (PromptTemplate): 路由提示词
+            返回:
+                LLMRouterChain: 配置完成的 LLMRouterChain 实例。
+        """
+
+        router_chain = LLMRouterChain.from_llm(self.llm, router_prompt, verbose=True)
+        return router_chain
         
-        social_post_chain = prompts[2] | self.llm | OutputParser('json', output_models[2]).get_parser()
 
-        # 按顺序运行三个链
-        overall_chain = introduction_chain | review_chain | social_post_chain
+    def getDefaultChain(self):
+        default_chain = ConversationChain(llm=self.llm, output_key="text", verbose=True)
+        return default_chain
+    
 
-        return overall_chain
+    def getMutipleRouterChain(self, keys, descriptions, templates):
+        """
+        创建一个基于 MultiPromptChain 的聊天模型链。
+            参数:
+                keys (list): 用于生成聊天模型输入的提示模板列表。
+                descriptions (list): 用于生成聊天模型输入的提示模板列表。
+                templates (list): 用于生成聊天模型输入的提示模板列表。
+            返回:
+                MultiPromptChain: 配置完成的 MultiPromptChain 实例。
+        """
+
+        Router_infos = PromptCreator(
+            prompt_type="router_infos",
+            keys=keys,
+            descriptions=descriptions,
+            templates=templates
+        ).get_prompt_template()
+        
+        chain_map = ChatModelChain().getChainsMap(Router_infos)
+
+        Router_creator = PromptCreator(
+            prompt_type="router",
+            prompt_infos=Router_infos
+        )
+
+        router_prompt = Router_creator.get_prompt()
+        router_chain = ChatModelChain().getRouterChain(router_prompt)
+
+        default_chain = ChatModelChain().getDefaultChain()
+
+        chain = MultiPromptChain(
+            router_chain=router_chain,
+            destination_chains=chain_map,
+            default_chain=default_chain,
+            verbose=True,
+        )
+        return chain

@@ -139,9 +139,114 @@ def test_fewshot_selector_template():
     print(f"测试  模型回复：  {response}\n")
 
 
+def test_Router_template():
+
+    # 构建两个场景的模板
+    flower_care_template = """
+    你是一个经验丰富的园丁，擅长解答关于养花育花的问题。
+    下面是需要你来回答的问题:
+    {input}
+    """
+
+    flower_deco_template = """
+    你是一位网红插花大师，擅长解答关于鲜花装饰的问题。
+    下面是需要你来回答的问题:
+    {input}
+    """
+    templates = [flower_care_template, flower_deco_template]
+    keys = ["flower_care", "flower_decoration"]
+    descriptions = ["适合回答关于鲜花护理的问题", "适合回答关于鲜花装饰的问题"]
+
+    router_prompt_infos = PromptCreator(
+        prompt_type="router_infos", 
+        keys=keys, 
+        descriptions=descriptions,
+        templates=templates
+    ).get_prompt_template()
+
+
+    # 构建提示信息
+    prompt_infos = [
+        {
+            "key": "flower_care",
+            "description": "适合回答关于鲜花护理的问题",
+            "template": flower_care_template,
+        },
+        {
+            "key": "flower_decoration",
+            "description": "适合回答关于鲜花装饰的问题",
+            "template": flower_deco_template,
+        },
+    ]
+    # 对比逻辑
+    if router_prompt_infos == prompt_infos:
+        print("Router prompt matches prompt infos: True")
+    else:
+        print("Router prompt does not match prompt infos: False")
+        print(f"Expected: {prompt_infos}\n"
+              f"\nActual: {router_prompt_infos}")
+        # 可打印差异，方便调试
+        for i, (expected, actual) in enumerate(zip(prompt_infos, router_prompt_infos)):
+            if expected != actual:
+                print(f"Mismatch at index {i}:\nExpected: {expected}\nActual: {actual}")
+
+
+    # 构建路由链
+    from langchain.chains.router.llm_router import LLMRouterChain, RouterOutputParser
+    from langchain.chains.router.multi_prompt_prompt import (
+        MULTI_PROMPT_ROUTER_TEMPLATE as RounterTemplate,
+    )
+
+    destinations = [f"{p['key']}: {p['description']}" for p in prompt_infos]
+    router_template = RounterTemplate.format(destinations="\n".join(destinations))
+
+
+    router_creator_template = PromptCreator(
+        prompt_type="router",
+        keys=keys,
+        descriptions=descriptions,
+        templates=templates
+    ).get_prompt_template()
+
+    # 比较两种生成方式的结果
+    if router_template == router_creator_template:
+        print("Router prompt matches prompt infos: True")
+    else:
+        print("Router prompt does not match prompt infos: False")
+        print(f"Expected: {router_template}\n")
+        print(f"Actual: {router_creator_template}\n")
+
+
+
+    router_prompt = PromptTemplate(
+        template=router_template,
+        input_variables=["input"],
+        output_parser=RouterOutputParser(),
+    )
+
+
+    router_creator_prompt = PromptCreator(
+        prompt_type="router",
+        keys=keys,
+        descriptions=descriptions,
+        templates=templates
+    ).get_prompt()
+
+    # 比较两种生成方式的结果
+    if router_prompt == router_creator_prompt:
+        print("Router prompt matches prompt infos: True")
+    else:
+        print("Router prompt does not match prompt infos: False")
+        print(f"Expected: {router_prompt}\n")
+        print(f"Actual: {router_creator_prompt}\n")
+
+
+
+
 if __name__ == "__main__":
     # test_Cust_template()
-    test_CustInstr_template()
+    # test_CustInstr_template()
     # test_chat_template()
     # test_fewshot_template()
     # test_fewshot_selector_template()
+    test_Router_template()
