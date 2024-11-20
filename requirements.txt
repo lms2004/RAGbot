@@ -36,6 +36,7 @@ frozenlist @ file:///D:/bld/frozenlist_1729699474736/work
 fsspec @ file:///home/conda/feedstock_root/build_artifacts/fsspec_1725543257300/work
 gmpy2 @ file:///C:/ci/gmpy2_1645438895476/work
 google-auth==2.36.0
+google_search_results==2.4.2
 googleapis-common-protos==1.66.0
 greenlet==3.1.1
 grpcio==1.68.0
@@ -57,6 +58,7 @@ kubernetes==31.0.0
 langchain==0.2.16
 langchain-community==0.2.16
 langchain-core==0.2.43
+langchain-experimental==0.0.65
 langchain-openai==0.1.23
 langchain-text-splitters==0.2.4
 langsmith==0.1.143
@@ -74,6 +76,7 @@ multidict @ file:///D:/bld/multidict_1729065633457/work
 multiprocess @ file:///D:/bld/multiprocess_1724954696823/work
 mypy-extensions==1.0.0
 networkx @ file:///C:/b/abs_3bxnu56g9d/croot/networkx_1717597507456/work
+numexpr==2.10.1
 numpy @ file:///C:/b/abs_c1ywpu18ar/croot/numpy_and_numpy_base_1708638681471/work/dist/numpy-1.26.4-cp310-cp310-win_amd64.whl#sha256=ebb5aa2b36d8afa5ec3231c19e5a1fc75b6d85e7db483f0fb9e77dad58469977
 oauthlib==3.2.2
 onnxruntime==1.20.0

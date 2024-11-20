@@ -114,12 +114,10 @@ class ChatModel:
             ValueError: 当传入的 model_type 不是 "openai" 或 "huggingface" 时抛出异常。
         """
         self.model_type = model_type
-        self.max_tokens = max_tokens
-        self.temperature = temperature
 
         if model_type == "openai":
             # 创建 OpenAI 聊天模型接口
-            self.chat = create_openai_chat(temperature=self.temperature, max_tokens=self.max_tokens)
+            self.chat = create_openai_chat(temperature=temperature, max_tokens=max_tokens)
         elif model_type == "huggingface":
             # 创建 HuggingFace 聊天模型接口
             self.chat = create_huggingface_chat()
@@ -196,11 +194,10 @@ class ChatModelChain:
             temperature (float): 控制生成文本的创造性
         """
         self.model_type = model_type
-        self.max_tokens = max_tokens
-        self.temperature = temperature
+        temperature = temperature
         if model_type == "openai":
             # 创建 OpenAI 聊天模型链接口
-            self.llm = create_openai_chat(temperature=self.temperature, max_tokens=self.max_tokens)
+            self.llm = create_openai_chat(temperature=temperature, max_tokens=max_tokens)
         elif model_type == "huggingface":
             # 创建 HuggingFace 聊天模型链接口
             self.llm = create_huggingface_chat()
