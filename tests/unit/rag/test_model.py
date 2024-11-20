@@ -281,6 +281,39 @@ def test_ChatModelChain_getMutipleRouterChain():
     # 测试3
     print(chain.invoke("如何区分阿豆和罗豆？"))
 
+def test_ChatMOdelChain_getConversationChain():
+    def test_conversation(memory_type="buffer", **kwargs):
+        """
+        测试指定记忆机制的对话行为。
+        
+        Parameters:
+            memory_type (str): 选择记忆机制，可选 'buffer', 'window', 'summary', 'summary_buffer'
+        """
+        conversation = ChatModelChain(max_tokens=500).getConservationChain(memory_type=memory_type, **kwargs)
+        
+        print(f"\n--- Testing {memory_type} Memory ---")
+
+        conversation("我姐姐明天要过生日，我需要一束生日花束。")
+        print("第一次对话后的记忆:", conversation.memory.buffer)
+
+        # 回合2
+        conversation("她喜欢粉色玫瑰，颜色是粉色的。")
+        print("第二次对话后的记忆:", conversation.memory.buffer)
+
+        # 回合3 （第二天的对话）
+        response = conversation("我又来了，还记得我昨天为什么要来买花吗？")
+        print("/n第三次对话后时提示:/n", conversation.prompt.template)
+        print("/n第三次对话后的记忆:/n", conversation.memory.buffer)
+
+        # 打印对话内容
+        print("对话记忆内容:", conversation.memory.buffer)
+        print("模型回答:", response)
+        # 逐一测试不同的记忆机制
+    # test_conversation(memory_type="buffer")          # 完整缓冲记忆
+    # test_conversation(memory_type="window", k=2)         # 窗口缓冲记忆
+    # test_conversation(memory_type="summary")        # 对话总结记忆
+    test_conversation(memory_type="summary_buffer",max_token_limit=300) # 混合总结与窗口记忆
+
 
 if __name__ == "__main__":
     # test_ChatModelChain_getSingleChain()
@@ -288,5 +321,5 @@ if __name__ == "__main__":
     # test_ChatModelChain_getChainMap()
     # test_ChatModelChain_getRouterChain()
     # test_ChatModelChain_getDefaultChain()
-    test_ChatModelChain_getMutipleRouterChain()
-
+    # test_ChatModelChain_getMutipleRouterChain()
+    test_ChatMOdelChain_getConversationChain()

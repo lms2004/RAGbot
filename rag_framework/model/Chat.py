@@ -1,19 +1,39 @@
 import os
+from typing import Tuple
 from langchain_core.prompts import PromptTemplate
 
 
 from langchain.chains.router.llm_router import LLMRouterChain
-from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain.chains import ConversationChain  # 构建默认链
+
+from langchain.chains import ConversationChain
+from langchain.chains.conversation.memory import (
+    ConversationBufferMemory,
+    ConversationBufferWindowMemory,
+    ConversationSummaryMemory,
+    ConversationSummaryBufferMemory,
+)
+
 from langchain.chains.llm import LLMChain
 # 构建多提示链
 from langchain.chains.router import MultiPromptChain
 
 # from langchain_huggingface import HuggingFaceEndpoint
 from langchain_openai import ChatOpenAI
+import tiktoken
 
 from rag_framework.output_parser.data_parser import *
 from rag_framework.prompt.template import PromptCreator
+
+
+
+class ChatOpenAIIn05(ChatOpenAI):
+    def _get_encoding_model(self) -> Tuple[str, tiktoken.Encoding]:
+        """
+        Override the method to return a hardcoded valid model and its encoding.
+        """
+        # Set the model to a valid one to avoid errors
+        model = "gpt-3.5-turbo"
+        return model, tiktoken.encoding_for_model(model)
 
 
 
@@ -26,9 +46,9 @@ def create_openai_chat(temperature=0.8, max_tokens=100):
         max_tokens (int): 模型生成的最大 token 数限制，默认值为 100。
 
     返回:
-        ChatOpenAI: 配置完成的 OpenAI 聊天模型实例。
+        ChatOpenAIIn05: 配置完成的 OpenAI 聊天模型实例。
     """
-    return ChatOpenAI(model=os.environ.get("LLM_MODELEND"), temperature=temperature, max_tokens=max_tokens)
+    return ChatOpenAIIn05(model=os.environ.get("LLM_MODELEND"), temperature=temperature, max_tokens=max_tokens)
 
 
 def create_huggingface_chat(repo_id="google/flan-t5-large"):
@@ -187,6 +207,8 @@ class ChatModelChain:
         else:
             # 如果传入无效的模型类型，抛出异常
             raise ValueError("Invalid model type. Please choose 'openai' or 'huggingface'.")
+   
+    
     def getSingleChain(self, prompt, parser=None):
         """
         创建一个基于 LLMChain 的聊天模型链。
@@ -196,7 +218,8 @@ class ChatModelChain:
                 LLMChain: 配置完成的 LLMChain 实例。
         """
         return create_llm_chain(prompt, self.llm, parser)
-    
+
+
     def getSequentialChain(self, prompts:list, output_models:list):
         """
         创建一个基于 SequentialChain 的聊天模型链。
@@ -220,7 +243,8 @@ class ChatModelChain:
 
 
         return current_chain
-    
+
+
     def getChainsMap(self, prompt_infos):
         """
         创建一个基于 ChainMap 的聊天模型链。
@@ -295,3 +319,39 @@ class ChatModelChain:
             verbose=True,
         )
         return chain
+
+    def getConversationChain(self):
+        return ConversationChain(llm=self.llm, output_key="text", verbose=True)
+
+    def getConservationChain(self, memory_type=None, **kwargs):
+        if memory_type is None:
+            return self.getDefaultChain()
+
+        if memory_type == "buffer":
+            return ConversationChain(llm=self.llm, output_key="text", verbose=True, memory=ConversationBufferMemory())
+
+        elif memory_type == "window":
+            return ConversationChain(llm=self.llm, output_key="text", verbose=True, memory=ConversationBufferWindowMemory(**kwargs))
+
+        elif memory_type == "summary":
+            return ConversationChain(llm=self.llm, output_key="text", verbose=True, memory=ConversationSummaryMemory(llm=self.llm))
+
+        elif memory_type == "summary_buffer":
+            return ConversationChain(llm=self.llm, output_key="text", verbose=True, memory=ConversationSummaryBufferMemory(llm=self.llm , **kwargs))
+        else:
+            raise ValueError("Invalid memory type. Please choose 'buffer', 'buffer_window', 'summary', 'summary_buffer'.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
