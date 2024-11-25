@@ -1,6 +1,8 @@
 # 忽略 Python 编译文件和缓存目录
 *.pyc
 __pycache__/
+.idea/
+.vscode/
 
 # 忽略模型文件夹及其内容
 rag_framework/model/Models/gpt2/

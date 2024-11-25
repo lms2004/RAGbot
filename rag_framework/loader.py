@@ -36,4 +36,5 @@ def loader(path) -> list[str]:
             documents.extend(loader.load())
     return documents
 
+
 print(loader("./RAG/loader/docs/"))
