@@ -1,10 +1,11 @@
 import ast
 import json
+import os
 from typing import List
 from langchain.prompts import PipelinePromptTemplate, FewShotPromptTemplate
 from langchain_core.prompts import PromptTemplate
 # 构建路由链
-from langchain.chains.router.llm_router import LLMRouterChain, RouterOutputParser
+from langchain.chains.router.llm_router import  RouterOutputParser
 from langchain.chains.router.multi_prompt_prompt import (
     MULTI_PROMPT_ROUTER_TEMPLATE as RounterTemplate,
 )
@@ -21,43 +22,10 @@ from langchain.prompts.chat import (
 from langchain.prompts.example_selector import SemanticSimilarityExampleSelector
 from langchain_community.vectorstores import Chroma
 
-# 初始化Embedding类
-from volcenginesdkarkruntime import Ark
-from typing import List, Any
-from langchain.embeddings.base import Embeddings
-from langchain.pydantic_v1 import BaseModel
-import os
 
-class DoubaoEmbeddings(BaseModel, Embeddings):
-    client: Ark = None
-    api_key: str = ""
-    model: str
+from rag_framework.Embedding.embedding import DoubaoEmbeddings
 
-    def __init__(self, **data: Any):
-        super().__init__(**data)
-        if self.api_key == "":
-            self.api_key = os.environ["OPENAI_API_KEY"]
-        self.client = Ark(
-            base_url=os.environ["OPENAI_BASE_URL"],
-            api_key=self.api_key
-        )
 
-    def embed_query(self, text: str) -> List[float]:
-        """
-        生成输入文本的 embedding.
-        Args:
-            texts (str): 要生成 embedding 的文本.
-        Return:
-            embeddings (List[float]): 输入文本的 embedding，一个浮点数值列表.
-        """
-        embeddings = self.client.embeddings.create(model=self.model, input=text)
-        return embeddings.data[0].embedding
-
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        return [self.embed_query(text) for text in texts]
-
-    class Config:
-        arbitrary_types_allowed = True
 
 # 示例选择器
 def createSelector(samples):

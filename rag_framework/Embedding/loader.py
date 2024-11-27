@@ -4,6 +4,8 @@ from langchain_community.document_loaders import Docx2txtLoader
 from langchain_community.document_loaders import TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+
+
 def loader(path) -> list[str]:
     """
     加载指定路径下的所有文档内容并返回一个文档列表。
@@ -35,6 +37,3 @@ def loader(path) -> list[str]:
             loader = TextLoader(filepath)
             documents.extend(loader.load())
     return documents
-
-
-print(loader("./RAG/loader/docs/"))

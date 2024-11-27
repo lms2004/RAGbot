@@ -1,2 +1,13 @@
 {
+    "marscode.advanced": {
+        "logLevel": "info",
+        "logFile": false,
+        "outOfScopeProcess": false,
+        "debounceInterval": 125,
+        "proxyMode": "system",
+        "proxyUrl": ""
+    },
+    "marscode.codeCompletionPro": {
+        "enableCodeCompletionPro": true
+    }
 }
